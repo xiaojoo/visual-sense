@@ -565,11 +565,12 @@ h2, h3 { margin: 0; font-weight: 600; }
 
   .rail .empty { padding: var(--s-3) 0; }
   /* 日志吃掉右栏剩下的全部高度：目标表按内容长、指标块定高，余下的给日志。
-     min-height 必须是 auto 而不是 0 —— 写 0 的时候 1440x900 和 1280x800 这两档
-     卡片会缩到比自己的标题栏还矮（实测卡片 18px < 标题栏 49px），
-     标题栏糊到卡片边框外面；写 auto 它至少留一个标题栏（67px），
-     装不下就让右栏整体滚（这两档本来就在滚：aside.rail 早就有竖向滚动条）。 */
-  .rail .card.grow { flex: 1 1 0; min-height: auto; }
+     下限取"性能指标卡的高度"（--metrics-h 由 app.js 量真实渲染写进来），
+     不是取一个标题栏 —— 目标表一长，日志先塌成 67px 而上面的指标卡还有一百多 px，
+     同一栏里差这么多很难看。JS 还没跑到时退回 auto（= 一个标题栏，不会塌没）。
+     注意不能写 min-height: 0：那样卡片会比自己的标题栏还矮（实测 18px < 49px），
+     标题栏糊到卡片边框外面。 */
+  .rail .card.grow { flex: 1 1 0; min-height: var(--metrics-h, auto); }
   /* 日志和标题之间那 12px 不能是标题的外边距，也不能是列表的内边距 ——
      两种都会算进卡片的"最小高度"（列表 flex-basis:0 配上 border-box，
      padding 仍然占位），实测最小 79px > 1600x1050 那档的余量 71px，整栏就得滚。

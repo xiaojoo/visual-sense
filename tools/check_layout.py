@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 URL = "http://127.0.0.1:8060/"
 PORT = 9333
+EVENTS = 3             # 合成日志条数，--events 可改
 TARGETS = 3            # 合成目标条数，--targets 可改
 SHOT = ""            # --shot 给了就顺手截图，{w} {h} 会替换成视口尺寸
 
@@ -91,6 +92,22 @@ JS = """
     }
 
     renderTargets(list);
+  }
+
+  // 日志条数也要可调：他截图里那张日志卡是灌满的样子，
+  // 只有两三条日志时"两张卡等高"这种问题根本量不出来。
+  if (window.renderEvents) {
+    const now = Date.now() / 1000;
+    const feed = [];
+
+    for (let i = 0; i < __EVENTS__; i++) {
+      feed.push({
+        text: i % 3 === 0 ? "【摄像头】已连接" : "【摄像头】尝试重新连接…",
+        at: now - i * 61, seq: i + 1, count: i % 9 === 0 ? 2 : 1,
+      });
+    }
+
+    renderEvents(feed);
   }
 
   const px = v => Math.round(parseFloat(v) * 100) / 100;
@@ -275,12 +292,20 @@ JS = """
     };
   })();
 
+  // 操作日志卡不许比性能指标卡矮（它的下限就是那张卡的高度）
+  const railCards = [...document.querySelectorAll(".rail > .card")];
+  const logFloor = railCards.length > 2 ? {
+    metrics: px(railCards[1].getBoundingClientRect().height),
+    log: px(railCards[2].getBoundingClientRect().height),
+  } : null;
+
   const root = document.documentElement;
 
   return JSON.stringify({
     viewport: [innerWidth, innerHeight],
     seen: cards.length,
     holes: lineCheck.holes,
+    logFloor,
     uneven: lineCheck.uneven,
     tables,
     // 模块行一旦换行，代价全在画面区高度上，所以这三块必须一起量
@@ -335,7 +360,8 @@ async def probe(width: int, height: int, settle_ms: int) -> dict:
                    width=width, height=height, deviceScaleFactor=1, mobile=False)
         raw = await call("Runtime.evaluate",
                          expression=(JS.replace("__SETTLE__", str(settle_ms))
-                              .replace("__TARGETS__", str(TARGETS))),
+                              .replace("__TARGETS__", str(TARGETS))
+                              .replace("__EVENTS__", str(EVENTS))),
                          awaitPromise=True, returnByValue=True)
 
         if SHOT:
@@ -502,6 +528,14 @@ def report(data: dict) -> list[str]:
                 f"右栏宽 {payload['rail']['w']}px —— 这一档它要独占一行"
             )
 
+        floor = payload.get("logFloor")
+
+        if floor and floor["log"] < floor["metrics"] - 2:
+            problems.append(
+                f"{view} 操作日志 {payload['logFloor']['log']}px 比性能指标 "
+                f"{payload['logFloor']['metrics']}px 矮 —— 日志的下限就是指标卡的高度"
+            )
+
         if payload.get("uneven"):
             problems.append(
                 f"{view} 模块卡只有一行却不等宽：{payload['uneven']} —— "
@@ -606,15 +640,17 @@ def main() -> int:
     parser.add_argument("--url", help="改成量已经开着的那一份（会抢它的相机）")
     parser.add_argument("--save", type=Path, help="把这次的测量结果写成 json")
     parser.add_argument("--against", type=Path, help="和这份基线逐项比，几何变了就报")
+    parser.add_argument("--events", type=int, default=3, help="喂几条合成日志（量日志卡撑高之后的行为）")
     parser.add_argument("--targets", type=int, default=3, help="喂几条合成目标（量 4 行下限和 20 行上限）")
     parser.add_argument("--settle", type=int, default=1400, help="每档视口等多少毫秒再量")
     parser.add_argument("--shot", help="顺手截图，路径里用 {w} {h} 区分视口")
     args = parser.parse_args()
 
-    global URL, SHOT, TARGETS
+    global URL, SHOT, TARGETS, EVENTS
 
     SHOT = args.shot or ""
     TARGETS = args.targets
+    EVENTS = args.events
 
     if args.url:
         URL = args.url
