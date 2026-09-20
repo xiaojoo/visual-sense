@@ -583,13 +583,6 @@ function syncLayout() {
   // 行高量表头：目标表按内容长，上下限用行数表达（4~20 行），所以要有真实行高
   set("--row-h", row.getBoundingClientRect().height);
 
-  /* 操作日志的最小高度 = 性能指标卡的高度。
-     贴合那一档右栏是竖排的：目标表一长，日志先塌成一个标题栏（实测 67px），
-     而它上面的指标卡还有一百多 px —— 同一栏里差这么多很难看。
-     拿真实渲染出来的指标卡高度当下限，比写死一个数准，换字体也跟着走。 */
-  const metrics = document.querySelector(".rail .card:nth-child(2)");
-  if (metrics) set("--metrics-h", metrics.getBoundingClientRect().height);
-
   /* 换行之后最后一行常常差几张卡，右边空一大片 —— grid 不会自己把最后一行摊开。
      算出该有几列，让最后一张卡跨掉剩下的轨道：span = 列数 - (卡数-1) % 列数。
      5 张卡：4 列→跨 4，3 列→跨 2，2 列→跨 2，1 列→跨 1（不换行时也是 1）。

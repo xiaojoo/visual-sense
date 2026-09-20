@@ -292,20 +292,12 @@ JS = """
     };
   })();
 
-  // 操作日志卡不许比性能指标卡矮（它的下限就是那张卡的高度）
-  const railCards = [...document.querySelectorAll(".rail > .card")];
-  const logFloor = railCards.length > 2 ? {
-    metrics: px(railCards[1].getBoundingClientRect().height),
-    log: px(railCards[2].getBoundingClientRect().height),
-  } : null;
-
   const root = document.documentElement;
 
   return JSON.stringify({
     viewport: [innerWidth, innerHeight],
     seen: cards.length,
     holes: lineCheck.holes,
-    logFloor,
     uneven: lineCheck.uneven,
     tables,
     // 模块行一旦换行，代价全在画面区高度上，所以这三块必须一起量
@@ -526,14 +518,6 @@ def report(data: dict) -> list[str]:
             problems.append(
                 f"{view} 当前目标只占了 {payload['rail']['first']}px，"
                 f"右栏宽 {payload['rail']['w']}px —— 这一档它要独占一行"
-            )
-
-        floor = payload.get("logFloor")
-
-        if floor and floor["log"] < floor["metrics"] - 2:
-            problems.append(
-                f"{view} 操作日志 {payload['logFloor']['log']}px 比性能指标 "
-                f"{payload['logFloor']['metrics']}px 矮 —— 日志的下限就是指标卡的高度"
             )
 
         if payload.get("uneven"):
