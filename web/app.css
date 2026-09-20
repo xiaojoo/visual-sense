@@ -505,7 +505,10 @@ h2, h3 { margin: 0; font-weight: 600; }
 
 @media (max-width: 760px) {
   .topbar { height: auto; flex-wrap: wrap; gap: var(--s-2) var(--s-3); padding: var(--s-3); }
-  .pills { order: 3; width: 100%; flex: 1 0 100%; }
+  /* 手机档状态条整行放不下一排胶囊（三张 ≈440px vs 屏宽 390），
+     原来的 overflow-x:auto 就画出一条横滚动条，"激光 OFFLINE"被切在屏外。
+     这一档让它换行，滚动条随之没有存在的理由。 */
+  .pills { order: 3; width: 100%; flex: 1 0 100%; flex-wrap: wrap; overflow-x: visible; }
   .topbar-right { margin-left: auto; }
   .layout { padding: var(--s-3); gap: var(--s-3); }
   .rail { grid-template-columns: minmax(0, 1fr); }
