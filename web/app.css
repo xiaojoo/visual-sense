@@ -361,8 +361,8 @@ h2, h3 { margin: 0; font-weight: 600; }
    末列同理靠右缩进。
    选择器多带一层 .table-scroll 是为了压过后面对 .table.models 格子写的
    `padding: 5px 4px` —— 那条和这条特异度相同，只靠先后顺序分胜负，改文件顺序就会翻车。 */
-.table-scroll .table td:first-child, .table-scroll .table th:first-child { padding-left: var(--card-pad); }
-.table-scroll .table td:last-child, .table-scroll .table th:last-child { padding-right: var(--card-pad); }
+/* .table-scroll .table td:first-child, .table-scroll .table th:first-child { padding-left: var(--card-pad); } */
+/* .table-scroll .table td:last-child, .table-scroll .table th:last-child { padding-right: var(--card-pad); } */
 .table .dim { color: var(--faint); }
 .table .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 .table button { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 5px; padding: 2px 7px; font-size: 11px; cursor: pointer; }
@@ -378,7 +378,7 @@ h2, h3 { margin: 0; font-weight: 600; }
    用 px 而不是百分比：配合 min-width 让"挤不下"变成中间那段横向滚，
    而不是把每列一起压到换行（行不许换行，见 .table 的 white-space）。 */
 #target-table { table-layout: fixed; min-width: 398px; }
-#target-table col.c-src { width: 76px; }
+#target-table col.c-src { width: 50px; }
 #target-table col.c-id  { width: 44px; }
 #target-table col.c-cls { width: 76px; }
 #target-table col.c-sz  { width: 48px; }
@@ -388,7 +388,7 @@ h2, h3 { margin: 0; font-weight: 600; }
    加上格子左边 4px 和首末格那个 --card-pad 16px，正好 69 → 取 70。
    原来 84px 全是为了"不可驱动"那 4 个字；那个状态现在改成灰短横 + 悬停说明，
    不再占一个按钮的宽度。 */
-#target-table col.c-op  { width: 70px; }
+#target-table col.c-op  { width: 45px; }
 #target-table td { overflow: hidden; text-overflow: ellipsis; }
 
 .empty { color: var(--faint); font-size: 12px; text-align: center; padding: var(--s-5) 0; margin: 0; }
@@ -407,7 +407,7 @@ h2, h3 { margin: 0; font-weight: 600; }
 
 .log {
   list-style: none; margin: 0; padding: 0;
-  overflow-y: auto; flex: 1 1 auto; max-height: 206px;
+  overflow-y: auto; flex: 1 1 auto; max-height: 195px;
   font: 400 11.5px/1.5 var(--mono);
 }
 .log li { display: flex; gap: var(--s-2); padding: 4px 0; border-bottom: 1px solid #131c28; }
