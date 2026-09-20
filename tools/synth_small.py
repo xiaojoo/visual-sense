@@ -5,7 +5,7 @@
     .venv\\Scripts\\python.exe -m tools.synth_small --count 400 --seed 5
 
 为什么需要这一层：mosquito_ext.pt 实测 64px 以下检出率从 80% 掉到 13%，
-24px 以下是 0%（见 README 的尺度曲线）。外部集里 ≤32px 的蚊子框只有 36 个，
+24px 以下是 0%（见 docs/notes.md 的尺度曲线）。外部集里 ≤32px 的蚊子框只有 36 个，
 靠它本身学不会看小目标。而真蚊子还没拍到，所以先用合成把尺度这一课补上。
 
 三条口径，都是为了让这份数据不骗自己：

@@ -814,7 +814,7 @@ def check_propagate_window(window: int = 4) -> list[str]:
 
     偏差 = 传递结果偏离跟踪器观测多少 px；
     粗糙度 = 二阶差分中位，即还剩多少抖动写进真值。
-    和 README 里那张表同一个定义、同一组数：
+    和 docs/notes.md 里那张表同一个定义、同一组数：
     --verbose 会把这张表打出来。
 
     窗口 N 在 TrackBook 里是以目标帧为中心 ±N//2 帧的邻域，
