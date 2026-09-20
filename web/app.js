@@ -555,17 +555,17 @@ setInterval(() => {
   }
 }, 1000);
 
-/* 右栏宽度 = 模块卡宽度。
-   两边各写一个数字迟早会对不齐，而且模块卡是 auto-fit 出来的，
-   宽度随视口变。所以直接量一张真实卡片的宽度写回 CSS 变量。
+/* 三件"必须由真实渲染量出来"的事写回 CSS 变量：右栏宽度、表格行高、换行后的跨列。
+   两边各写一个数字迟早会对不齐，而且模块卡是 auto-fit 出来的，宽度随视口变。
    模块行铺满整个布局宽度，它的列宽不依赖 --rail-w —— 不会来回震荡。 */
-function syncRailWidth() {
+function syncLayout() {
+  const modules = document.querySelector(".modules");
   const card = document.getElementById("mod-camera");
   const row = document.querySelector("#target-table th");
-  if (!card || !row) return;
+  if (!modules || !card || !row) return;
 
-  const set = (name, value) => {
-    const next = `${Math.round(value)}px`;
+  const set = (name, value, unit = "px") => {
+    const next = `${Math.round(value)}${unit}`;
     const current = document.documentElement.style.getPropertyValue(name);
     if (value > 0 && current !== next) document.documentElement.style.setProperty(name, next);
   };
@@ -580,20 +580,38 @@ function syncRailWidth() {
 
   set("--rail-w", Math.min(card.getBoundingClientRect().width, cap));
 
-  // 行高量表头：目标表要正好放表头 + 5 行
+  // 行高量表头：目标表按内容长，上下限用行数表达（4~20 行），所以要有真实行高
   set("--row-h", row.getBoundingClientRect().height);
+
+  /* 换行之后最后一行常常差几张卡，右边空一大片 —— grid 不会自己把最后一行摊开。
+     算出该有几列，让最后一张卡跨掉剩下的轨道：span = 列数 - (卡数-1) % 列数。
+     5 张卡：4 列→跨 4，3 列→跨 2，2 列→跨 2，1 列→跨 1（不换行时也是 1）。
+
+     列数不能去量 gridTemplateColumns：最后一张卡的跨列本身会逼 grid 多开轨道，
+     量回来的列数再算出更大的跨列 —— 正反馈能把 1440 撑成 4 条轨道、横向溢出。
+     所以用"容器宽 ÷ 最小卡宽"直接算，两边都只认 --card-min 这一个数。 */
+  const style = getComputedStyle(modules);
+  const box = modules.getBoundingClientRect().width;
+  const gap = parseFloat(style.columnGap) || 0;
+  const min = parseFloat(style.getPropertyValue("--card-min")) || 0;
+  const cols = min > 0
+    ? Math.max(1, Math.floor((box + gap) / (min + gap)))
+    : style.gridTemplateColumns.trim().split(/\s+/).length;
+  const cards = modules.querySelectorAll(".card").length;
+
+  set("--last-span", cols - (cards - 1) % cols, "");
 }
 
 /* 不能用 load 事件：MJPEG 响应永不结束，window.load 在这页上根本不会触发
    （headless 截图卡死就是同一个原因）。
    ResizeObserver 盯模块容器 —— 字体加载完、视口变化、卡数变化都会回调。 */
-function watchRailWidth() {
+function watchLayout() {
   const modules = document.querySelector(".modules");
   if (!modules) return;
 
-  if (window.ResizeObserver) new ResizeObserver(syncRailWidth).observe(modules);
-  addEventListener("resize", syncRailWidth);
-  syncRailWidth();
+  if (window.ResizeObserver) new ResizeObserver(syncLayout).observe(modules);
+  addEventListener("resize", syncLayout);
+  syncLayout();
 }
 
 /* MJPEG 断了不会自己回来：<img> 的 src 失败一次就停在碎图标上。
@@ -612,7 +630,7 @@ function attachStream() {
 }
 
 applyLang();
-watchRailWidth();
+watchLayout();
 attachStream();
 poll();
 setInterval(poll, 600);

@@ -235,11 +235,38 @@ JS = """
     };
   });
 
+  // 换行之后最后一行不许留空洞：同一行卡片宽度合计应该等于容器宽（差一个列间距以内）。
+  // grid 自己不会把最后一行摊开，靠 app.js 量列数给最后一张卡补跨列 —— 这条就是验它有没有生效。
+  const holes = (() => {
+    const box = document.querySelector(".modules");
+    if (!box) return [];
+
+    const gap = parseFloat(getComputedStyle(box).columnGap) || 0;
+    const W = box.getBoundingClientRect().width;
+    const lines = new Map();
+
+    for (const c of box.querySelectorAll(":scope > .card")) {
+      const r = c.getBoundingClientRect();
+      const key = Math.round(r.y);
+      const line = lines.get(key) || { sum: 0, n: 0 };
+      line.sum += r.width;
+      line.n += 1;
+      lines.set(key, line);
+    }
+
+    // 一行 n 张卡本身就要占 (n-1) 个列间距，先把它加回去再比容器宽，
+    // 不然摊满的那一行会被当成空洞。
+    return [...lines.entries()]
+      .filter(([, line]) => W - (line.sum + (line.n - 1) * gap) > 4)
+      .map(([y, line]) => `y=${y} ${line.n}张 空${Math.round(W - line.sum - (line.n - 1) * gap)}px`);
+  })();
+
   const root = document.documentElement;
 
   return JSON.stringify({
     viewport: [innerWidth, innerHeight],
     seen: cards.length,
+    holes,
     tables,
     // 模块行一旦换行，代价全在画面区高度上，所以这三块必须一起量
     stage: box(document.querySelector('.stage')),
@@ -440,6 +467,12 @@ def report(data: dict) -> list[str]:
                     f"首列离容器左沿 {roll['gapLeft']}px、末列离右沿 {roll['gapRight']}px —— 两头没钉住"
                 )
 
+        if payload.get("holes"):
+            problems.append(
+                f"{view} 模块行有没摊满的一行：{payload['holes']} —— "
+                "grid 不会自己摊最后一行，靠 syncLayout() 给最后一张卡补跨列"
+            )
+
         # 表格容器横滚是设计内的（首末列钉住、中间滚），别当事故报
         bars = [b for b in payload["bars"] if "table-scroll" not in b]
         rolls = [b for b in payload["bars"] if "table-scroll" in b]
@@ -579,6 +612,7 @@ def main() -> int:
               f"  页面溢出 x={payload['page']['x']:>4} y={payload['page']['y']:>4}"
               f"  --rail-w={payload['railW'] or '-':<7}"
               f" 横向滚动条={len(payload['bars'])} 竖向={len(payload['vbars'])}"
+              f" 没摊满的行={len(payload.get('holes') or [])}"
               f" 内容区可滚={len(pins)} 张，标题位移={sorted({p['moved'] for p in pins})}")
 
         for table in payload.get("tables", []):

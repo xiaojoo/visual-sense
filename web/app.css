@@ -157,7 +157,20 @@ h2, h3 { margin: 0; font-weight: 600; }
 
 .stage   { grid-area: stage; min-width: 0; }
 .rail    { grid-area: rail; display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-.modules { grid-area: modules; display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: var(--s-4); }
+/* --card-min 是"多窄才算挤不下"的唯一来源：轨道用它，app.js 算列数也用它。
+   以前这里写死 292px、贴合段写死 410px，app.js 再去量被跨列污染过的轨道表 ——
+   正反馈能把 1440 那一档撑成 4 条轨道，横向直接溢出。 */
+.modules {
+  --card-min: 292px;
+  grid-area: modules; display: grid; gap: var(--s-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--card-min), 100%), 1fr));
+}
+
+/* 换行之后最后一行常常差几张卡，右边空一大片。grid 不会自己把最后一行摊开，
+   所以由 app.js 量出真实列数，给最后一张卡补一个跨列（--last-span）。
+   写在基线段而不是贴合视口那段：单列/平板那档同样会留空洞。
+   没算出来之前按 1 走，最坏就是退回"右边空一片"，不会布局错乱。 */
+.modules .card:last-child { grid-column: span var(--last-span, 1); }
 
 /* ---------- 舞台 ---------- */
 
@@ -309,8 +322,13 @@ h2, h3 { margin: 0; font-weight: 600; }
    左右这一维的留白改由首末格的 padding 提供（见下面 .table-scroll .table 那两条）。 */
 .table-scroll {
   overflow: auto; margin: calc(-1 * var(--s-2)) 0 0; padding: 0;
-  /* 最少 4 行、最多 20 行（含表头），行高由 app.js 量真实表头写进 --row-h。
-     原来这里写死 max-height: 232px，等于"7.7 行"这么个没来由的数。 */
+  /* 兜底上限：8 行（行高由 app.js 量真实表头写进 --row-h）。
+     原来写死 232px，等于"7.7 行"这么个没来由的数。 */
+  max-height: calc(var(--row-h, 25px) * 8);
+}
+/* 目标表单独按他说的 4~20 行走：最少留 4 行的位子（空表也不塌），
+   最多 20 行，超了在表内滚。这条只管右栏那张，别把模型表一起撑到 600px 高。 */
+.rail .table-scroll {
   min-height: calc(var(--row-h, 25px) * 4);
   max-height: calc(var(--row-h, 25px) * 20);
 }
@@ -517,13 +535,13 @@ h2, h3 { margin: 0; font-weight: 600; }
 
   .stage { min-height: 0; }
   .rail  { min-height: 0; overflow-y: auto; }
-  /* 每张模块卡最小 410px，放不下就换行（auto-fit 自己决定几列）。
-     以前这里写死 repeat(5, 1fr) 不换行，因为换行会把画面区压扁；
-     现在模块行有 max-height 兜着，多出来的那一行在行内挤，画面区不至于塌。
-     卡数变了不用再改这里的数字。 */
+  /* 每张模块卡最小 410px，放不下就换行（auto-fit 自己决定几列，卡数变了不用改这里）。
+     试过换成 flex 让落单的卡自己撑满 —— 宽度确实满了，但 flex 的行高是按内容算的，
+     40vh 这个上限就不再压它：实测 1920 下最后一张卡有 243px 被 .layout 的 overflow 裁掉，
+     1280 下裁掉 592px。所以留在 grid（行高会被压进上限、卡在内部滚），
+     换行剩下的那段空由 app.js 量出列数、给最后一张卡补一个跨列（--last-span）。 */
   .modules {
     --card-min: 410px;
-    grid-template-columns: repeat(auto-fit, minmax(min(var(--card-min), 100%), 1fr));
     align-content: start;
     /* 5 等分之后卡片变窄、文字变高，"使用说明"能把整行顶到 450px，
        画面区就被压到 238px。给模块行一个上限，装不下的卡在**卡内**滚，
@@ -532,7 +550,9 @@ h2, h3 { margin: 0; font-weight: 600; }
   }
   /* 卡片本身不滚，标题钉住，只有 .card-body 滚。
      以前是整张卡 overflow-y:auto，滚一下把"使用说明"标题也推走了。 */
-  .modules .card { display: flex; flex-direction: column; overflow: hidden; }
+  .modules .card {
+    display: flex; flex-direction: column; overflow: hidden;
+  }
   .card-body { min-height: 0; overflow-y: auto; }
 
   .rail .empty { padding: var(--s-3) 0; }
