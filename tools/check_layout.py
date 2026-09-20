@@ -47,6 +47,8 @@ VIEWPORTS = [
     (1600, 1050),
     (1440, 900),
     (1280, 800),
+    (915, 800),      # 他说的那条线：这一档不许变
+    (914, 800),      # 小于 915：当前目标要独占一行
     (900, 800),
     (390, 844),
 ]
@@ -286,6 +288,13 @@ JS = """
     video: box(document.querySelector('.video-wrap')),
     modules: box(document.querySelector('.modules')),
     railW: getComputedStyle(root).getPropertyValue('--rail-w').trim(),
+    rail: (() => {
+      const r = document.querySelector(".rail");
+      const first = r && r.querySelector(":scope > .card");
+      return r && first
+        ? { w: px(r.getBoundingClientRect().width), first: px(first.getBoundingClientRect().width) }
+        : null;
+    })(),
     rowH: getComputedStyle(root).getPropertyValue('--row-h').trim(),
     cards,
     bars: hbars,
@@ -484,6 +493,13 @@ def report(data: dict) -> list[str]:
             problems.append(
                 f"{view} 模块行有没摊满的一行：{payload['holes']} —— "
                 "grid 不会自己摊最后一行，靠 syncLayout() 给最后一张卡补跨列"
+            )
+
+        # 914 及以下：右栏第一张卡（当前目标）必须独占一行，另外两张并排
+        if payload.get("rail") and int(view.split("x")[0]) <= 914                 and payload["rail"]["first"] < payload["rail"]["w"] - 4:
+            problems.append(
+                f"{view} 当前目标只占了 {payload['rail']['first']}px，"
+                f"右栏宽 {payload['rail']['w']}px —— 这一档它要独占一行"
             )
 
         if payload.get("uneven"):

@@ -497,6 +497,14 @@ h2, h3 { margin: 0; font-weight: 600; }
   .rail { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 }
 
+/* 小于 915px：右栏固定两列，"当前目标"独占一整行，性能指标和操作日志并排。
+   这一档目标表要 420px 宽，挤在两列之一里只剩 425px，列全被压着 —— 独占一行才读得动。
+   必须写在 760 那段之前：手机那档要的是三张卡竖着排，靠后面的规则覆盖掉这里的两列。 */
+@media (max-width: 914px) {
+  .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rail .card:first-child { grid-column: 1 / -1; }
+}
+
 @media (max-width: 760px) {
   .topbar { height: auto; flex-wrap: wrap; gap: var(--s-2) var(--s-3); padding: var(--s-3); }
   .pills { order: 3; width: 100%; flex: 1 0 100%; }
