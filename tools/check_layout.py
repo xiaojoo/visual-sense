@@ -228,8 +228,11 @@ JS = """
 
     if (scroller && first && last && scroller.scrollWidth - scroller.clientWidth > 4) {
       const r = scroller.getBoundingClientRect();
+      // 竖向滚动条会占掉右边一条，容器"看得见"的右沿要往内收这么多
+      const vbar = scroller.offsetWidth - scroller.clientWidth
+        - (parseFloat(s.borderLeftWidth) || 0) - (parseFloat(s.borderRightWidth) || 0);
       const inLeft = r.left + (parseFloat(s.paddingLeft) || 0);
-      const inRight = r.right - (parseFloat(s.paddingRight) || 0);
+      const inRight = r.right - (parseFloat(s.paddingRight) || 0) - Math.max(vbar, 0);
 
       scroller.scrollLeft = 9999;
       pin = {

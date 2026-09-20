@@ -415,15 +415,27 @@ function renderTargets(targets) {
       `<td></td>`;
 
     const cell = row.lastChild;
-    const button = document.createElement("button");
     // 没拿到跟踪 ID 的目标不能锁：它下一帧就可能变成别的东西，
     // 锁上去等于让激光去追一个不存在的名字。
-    // 不可驱动的那几路（比如"人"）压根不该出现在激光的候选里
-    button.disabled = !tracked || !target.targetable;
-    button.title = !target.targetable ? t("targets.notarget") : tracked ? "" : t("targets.untracked");
-    button.textContent = !target.targetable
-      ? t("targets.notarget")
-      : tracked ? (target.locked ? t("targets.unlock") : t("targets.lock")) : t("targets.untracked");
+    // 不可驱动的那几路（比如"人"）压根不该出现在激光的候选里 ——
+    // 与其画一个永远点不动的按钮占掉半列宽，不如一个灰短横 + 悬停说明，
+    // 操作列因此能从 84px 收到 70px（最宽的按钮是"已锁定"，49px）。
+    if (!target.targetable) {
+      const dash = document.createElement("span");
+      dash.className = "dim";
+      dash.textContent = "—";
+      dash.title = t("targets.notarget");
+      cell.appendChild(dash);
+      body.appendChild(row);
+      continue;
+    }
+
+    const button = document.createElement("button");
+    button.disabled = !tracked;
+    button.title = tracked ? "" : t("targets.untracked");
+    button.textContent = tracked
+      ? (target.locked ? t("targets.unlock") : t("targets.lock"))
+      : t("targets.untracked");
     button.className = target.locked ? "on" : "";
     button.onclick = () => lock(target);
     cell.appendChild(button);
