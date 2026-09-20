@@ -598,8 +598,14 @@ function syncLayout() {
     ? Math.max(1, Math.floor((box + gap) / (min + gap)))
     : style.gridTemplateColumns.trim().split(/\s+/).length;
   const cards = modules.querySelectorAll(".card").length;
+  const rem = cards % cols;
 
-  set("--last-span", cols - (cards - 1) % cols, "");
+  /* 列数够放下所有卡（宽屏）时绝不能跨：那时 auto-fit 会把空轨道收掉，
+     五张卡本来就等宽，再跨一下就把最后一张撑成两倍宽了。
+     只有真的换行、最后一行没坐满，才把剩下的轨道补给最后一张。 */
+  const span = cols >= cards || rem === 0 ? 1 : 1 + (cols - rem);
+
+  set("--last-span", span, "");
 }
 
 /* 不能用 load 事件：MJPEG 响应永不结束，window.load 在这页上根本不会触发

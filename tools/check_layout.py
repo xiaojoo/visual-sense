@@ -39,8 +39,10 @@ PORT = 9333
 TARGETS = 3            # 合成目标条数，--targets 可改
 SHOT = ""            # --shot 给了就顺手截图，{w} {h} 会替换成视口尺寸
 
-# 覆盖到的三种真实场景：贴合视口（大屏）、单列（窄）、手机
+# 覆盖三种真实场景：贴合视口（含 2560 / 3440 宽屏）、单列（窄）、手机
 VIEWPORTS = [
+    (3440, 1440),
+    (2560, 1080),
     (1920, 1080),
     (1600, 1050),
     (1440, 900),
@@ -235,11 +237,13 @@ JS = """
     };
   });
 
-  // 换行之后最后一行不许留空洞：同一行卡片宽度合计应该等于容器宽（差一个列间距以内）。
-  // grid 自己不会把最后一行摊开，靠 app.js 量列数给最后一张卡补跨列 —— 这条就是验它有没有生效。
-  const holes = (() => {
+  // 换行之后不许留两种毛病：
+  //   holes  —— 同一行卡片宽度合计 + 列间距 应当等于容器宽（差 4px 以内）；
+  //   uneven —— 只有一行时（宽屏放得下全部卡）几张卡必须等宽，
+  //            这时 auto-fit 会收掉空轨道，任何跨列都会把最后一张撑成两倍宽。
+  const lineCheck = (() => {
     const box = document.querySelector(".modules");
-    if (!box) return [];
+    if (!box) return { holes: [], uneven: [] };
 
     const gap = parseFloat(getComputedStyle(box).columnGap) || 0;
     const W = box.getBoundingClientRect().width;
@@ -248,17 +252,25 @@ JS = """
     for (const c of box.querySelectorAll(":scope > .card")) {
       const r = c.getBoundingClientRect();
       const key = Math.round(r.y);
-      const line = lines.get(key) || { sum: 0, n: 0 };
-      line.sum += r.width;
-      line.n += 1;
+      const line = lines.get(key) || [];
+      line.push(r.width);
       lines.set(key, line);
     }
 
-    // 一行 n 张卡本身就要占 (n-1) 个列间距，先把它加回去再比容器宽，
-    // 不然摊满的那一行会被当成空洞。
-    return [...lines.entries()]
-      .filter(([, line]) => W - (line.sum + (line.n - 1) * gap) > 4)
-      .map(([y, line]) => `y=${y} ${line.n}张 空${Math.round(W - line.sum - (line.n - 1) * gap)}px`);
+    const rows = [...lines.entries()].map(([y, w]) => ({ y, w }));
+    const holes = rows
+      .filter((r) => W - (r.w.reduce((a, b) => a + b, 0) + (r.w.length - 1) * gap) > 4)
+      .map((r) => `y=${r.y} ${r.w.length}张 空`
+        + `${Math.round(W - r.w.reduce((a, b) => a + b, 0) - (r.w.length - 1) * gap)}px`);
+
+    const spread = rows.length === 1 && rows[0].w.length > 1
+      ? Math.max(...rows[0].w) - Math.min(...rows[0].w)
+      : 0;
+
+    return {
+      holes,
+      uneven: spread > 2 ? [`单行 ${rows[0].w.length} 张宽度差 ${Math.round(spread)}px`] : [],
+    };
   })();
 
   const root = document.documentElement;
@@ -266,7 +278,8 @@ JS = """
   return JSON.stringify({
     viewport: [innerWidth, innerHeight],
     seen: cards.length,
-    holes,
+    holes: lineCheck.holes,
+    uneven: lineCheck.uneven,
     tables,
     // 模块行一旦换行，代价全在画面区高度上，所以这三块必须一起量
     stage: box(document.querySelector('.stage')),
@@ -287,7 +300,7 @@ JS = """
 
 # 只有这四档走"贴合视口"，页面本身不许滚；窄屏/手机本来就是单列长页，
 # 竖向滚动是设计内的，不能当异常。
-FIT = {"1920x1080", "1600x1050", "1440x900", "1280x800"}
+FIT = {"3440x1440", "2560x1080", "1920x1080", "1600x1050", "1440x900", "1280x800"}
 
 
 async def probe(width: int, height: int, settle_ms: int) -> dict:
@@ -473,6 +486,12 @@ def report(data: dict) -> list[str]:
                 "grid 不会自己摊最后一行，靠 syncLayout() 给最后一张卡补跨列"
             )
 
+        if payload.get("uneven"):
+            problems.append(
+                f"{view} 模块卡只有一行却不等宽：{payload['uneven']} —— "
+                "放得下全部卡时不该跨列，auto-fit 自己会收掉空轨道"
+            )
+
         # 表格容器横滚是设计内的（首末列钉住、中间滚），别当事故报
         bars = [b for b in payload["bars"] if "table-scroll" not in b]
         rolls = [b for b in payload["bars"] if "table-scroll" in b]
@@ -613,6 +632,7 @@ def main() -> int:
               f"  --rail-w={payload['railW'] or '-':<7}"
               f" 横向滚动条={len(payload['bars'])} 竖向={len(payload['vbars'])}"
               f" 没摊满的行={len(payload.get('holes') or [])}"
+              f" 不等宽={len(payload.get('uneven') or [])}"
               f" 内容区可滚={len(pins)} 张，标题位移={sorted({p['moved'] for p in pins})}")
 
         for table in payload.get("tables", []):
