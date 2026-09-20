@@ -1,0 +1,27 @@
+# 环境和编辑器
+.venv/
+.venv-ai/
+venv/
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+
+# 数据和产物：体积大（几十 MB 到几 GB），而且里面是采集来的原始画面
+dataset/
+dataset_yolo/
+dataset_yolo_synth/
+synth/
+external/
+runs/
+weights/
+
+# 本机配置：里面有局域网地址（手机推流那台的 IP），不进版本库
+# 首次跑起来：copy config\config.example.json config\config.json
+config/config.json
+config/*.bak
+
+# 量测和排查过程中临时生成的图片
+probe_*.png
+shot_*.png
+layout-*.json

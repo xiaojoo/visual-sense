@@ -1,0 +1,57 @@
+{
+    "camera_mode": "network",
+    "camera_index": 0,
+    "camera_url": "http://192.0.2.1:8080/video",
+    "window_width": 1280,
+    "window_height": 720,
+    "metrics_window": 120,
+    "reconnect_interval": 2.0,
+    "buffer_size": 1,
+    "ai": {
+        "enabled": true,
+        "model_path": "weights/mosquito_synth1280.pt",
+        "device": "auto",
+        "imgsz": 1280,
+        "conf": 0.25,
+        "iou": 0.7,
+        "quantize": null,
+        "detect_every": 1,
+        "max_det": 100,
+        "track_enabled": true,
+        "tracker": "bytetrack.yaml",
+        "trail_frames": 40,
+        "predict_enabled": true,
+        "predict_horizon_ms": 100.0,
+        "predict_window": 6,
+        "predict_min_samples": 4,
+        "predict_max_gap_s": 0.5
+    },
+    "record": {
+        "dataset_dir": "dataset",
+        "stride": 5,
+        "max_frames": 3000,
+        "jpeg_quality": 90,
+        "auto_labels": false,
+        "save_preview": false
+    },
+    "web": {
+        "host": "0.0.0.0",
+        "port": 8060,
+        "title": "VisualSense",
+        "stream": {
+            "max_width": 960,
+            "jpeg_quality": 72,
+            "every_n_frames": 1,
+            "snapshot_every_s": 0.25
+        }
+    },
+    "laser": {
+        "enabled": false,
+        "backend": "none",
+        "max_dwell_s": 1.5,
+        "cooldown_s": 1.0,
+        "watchdog_s": 3.0,
+        "power_w": 0.0,
+        "aperture_mm": 0.0
+    }
+}

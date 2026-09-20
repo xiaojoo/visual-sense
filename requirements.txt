@@ -1,0 +1,7 @@
+opencv-python>=4.10.0
+numpy>=1.26.0
+
+# V0.5 浏览器控制台。只进 .venv，不进 .venv-ai：
+# 这一层不 import torch，没有 GPU 的机器也能把界面跑起来。
+fastapi>=0.115
+uvicorn[standard]>=0.30

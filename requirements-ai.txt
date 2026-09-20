@@ -1,0 +1,9 @@
+# V0.2 检测依赖。
+#
+# torch / torchvision 不在这里写，因为它们必须从 PyTorch 的 CUDA 轮子索引安装，
+# 见 run-ai.bat 中的 --index-url。
+#
+# 安装方式：
+#   .venv-ai\Scripts\python.exe -m pip install -r requirements.txt -r requirements-ai.txt
+
+ultralytics>=8.3.0

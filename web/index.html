@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>VisualSense 控制台</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div class="brand-text">
+      <strong>VisualSense</strong>
+      <span class="ver" id="version">V0.5</span>
+    </div>
+  </div>
+
+  <div class="pills" id="pills">
+    <span class="pill" data-pill="camera"><i></i><b data-i18n="pill.camera">摄像头</b><em id="pill-camera">—</em></span>
+    <span class="pill" data-pill="ai"><i></i><b data-i18n="pill.ai">检测</b><em id="pill-ai">—</em></span>
+    <span class="pill" data-pill="laser"><i></i><b data-i18n="pill.laser">激光</b><em id="pill-laser">—</em></span>
+  </div>
+
+  <div class="topbar-right">
+    <span class="uptime" id="uptime">--:--:--</span>
+    <div class="lang" role="group" aria-label="语言">
+      <button id="lang-zh" class="on">中</button><button id="lang-en">EN</button>
+    </div>
+    <button class="ghost danger" id="btn-stop" data-i18n="top.stop">停止服务</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="stage">
+    <div class="stage-head">
+      <h2 data-i18n="stage.title">实时画面</h2>
+      <div class="stage-meta">
+        <span id="stream-res">—</span>
+        <span class="dot"></span>
+        <span id="stream-age">—</span>
+        <button class="ghost tiny" id="btn-fullscreen" data-i18n="stage.full">全屏</button>
+      </div>
+    </div>
+
+    <div class="video-wrap" id="video-wrap">
+      <img id="stream" alt="实时画面" src="">
+      <div class="video-empty" id="video-empty">
+        <span data-i18n="stage.waiting">等待画面…</span>
+      </div>
+      <div class="targets" id="targets"></div>
+      <div class="rec-badge" id="rec-badge" hidden><i></i>REC</div>
+    </div>
+
+    <div class="stage-foot">
+      <div class="chips" id="quick">
+        <button class="chip" data-cmd="toggle_ai"><b data-i18n="quick.ai">AI 检测</b><em id="chip-ai">OFF</em></button>
+        <button class="chip" data-cmd="toggle_track"><b data-i18n="quick.track">跟踪</b><em id="chip-track">OFF</em></button>
+        <button class="chip" data-cmd="toggle_predict"><b data-i18n="quick.predict">预测</b><em id="chip-predict">OFF</em></button>
+        <button class="chip rec" data-cmd="toggle_record"><b data-i18n="quick.record">采集</b><em id="chip-record">OFF</em></button>
+      </div>
+      <div class="spark-wrap"><canvas id="spark" width="480" height="46"></canvas><span class="spark-label" data-i18n="stage.fpsplot">FPS 曲线</span></div>
+    </div>
+  </section>
+
+  <aside class="rail">
+
+    <section class="card">
+      <header><h3 data-i18n="targets.title">当前目标</h3><span class="count" id="target-count">0</span></header>
+      <div class="table-scroll">
+        <table class="table" id="target-table">
+          <colgroup>
+            <col class="c-src"><col class="c-id"><col class="c-cls"><col class="c-sz">
+            <col class="c-cf"><col class="c-sp"><col class="c-op">
+          </colgroup>
+          <thead><tr>
+            <th data-i18n="targets.source">来源</th><th>ID</th><th data-i18n="targets.class">类别</th>
+            <th class="num" data-i18n="targets.size">尺寸</th>
+            <th class="num" data-i18n="targets.conf">置信</th>
+            <th class="num" data-i18n="targets.speed">速度</th>
+            <th data-i18n="targets.op">操作</th>
+          </tr></thead>
+          <tbody id="target-body"></tbody>
+        </table>
+        <p class="empty" id="targets-empty" data-i18n="targets.none">画面里没有目标</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <header><h3 data-i18n="metrics.title">性能指标</h3></header>
+      <dl class="metrics">
+        <div><dt>FPS</dt><dd id="m-fps">—</dd></div>
+        <div><dt data-i18n="metrics.read">读取</dt><dd id="m-read">—</dd></div>
+        <div><dt data-i18n="metrics.infer">推理</dt><dd id="m-infer">—</dd></div>
+        <div><dt data-i18n="metrics.interval">帧间隔</dt><dd id="m-interval">—</dd></div>
+        <div><dt data-i18n="metrics.avgdet">平均目标</dt><dd id="m-avgdet">—</dd></div>
+        <div><dt data-i18n="metrics.frames">累计帧</dt><dd id="m-frames">—</dd></div>
+      </dl>
+      <p class="hint" id="metric-hint"></p>
+    </section>
+
+    <section class="card grow">
+      <header><h3 data-i18n="log.title">操作日志</h3><button class="ghost tiny" id="btn-clear" data-i18n="log.clear">清空</button></header>
+      <ul class="log" id="log"></ul>
+    </section>
+
+  </aside>
+
+  <section class="modules">
+
+    <article class="card" id="mod-camera">
+      <header><h3 data-i18n="mod.camera.title">摄像头检测</h3><span class="tag" id="cam-state">—</span></header>
+      <div class="card-body">
+      <p class="lead" data-i18n="mod.camera.lead">画面来源、模型与推理参数。</p>
+      <dl class="kv">
+        <div><dt data-i18n="mod.camera.source">数据源</dt><dd id="k-source">—</dd></div>
+        <div><dt data-i18n="mod.camera.resolution">分辨率</dt><dd id="k-res">—</dd></div>
+        <div><dt data-i18n="mod.camera.device">设备</dt><dd id="k-device">—</dd></div>
+        <div><dt data-i18n="mod.camera.tracks">活跃轨迹</dt><dd id="k-tracks">—</dd></div>
+      </dl>
+      <p class="error" id="k-camerr"></p>
+      </div>
+    </article>
+
+    <article class="card wide" id="mod-models">
+      <header><h3 data-i18n="mod.models.title">模型组</h3><span class="tag" id="mm-state">—</span></header>
+      <div class="card-body">
+      <p class="lead" data-i18n="mod.models.lead">同一个画面跑多路检测。每路自带跟踪和预测，因为 track_id 只在单路内唯一。</p>
+      <div class="table-scroll">
+        <table class="table models">
+          <colgroup>
+            <col class="m-name"><col class="m-wt"><col class="m-sz"><col class="m-cf"><col class="m-ev">
+            <col class="m-ms"><col class="m-n"><col class="m-tg"><col class="m-op">
+          </colgroup>
+          <thead><tr>
+            <th data-i18n="mm.name">名称</th><th data-i18n="mm.weights">权重</th>
+            <th>imgsz</th><th>conf</th><th data-i18n="mm.every">每N帧</th>
+            <th class="num" data-i18n="mm.ms">推理</th><th class="num" data-i18n="mm.n">目标</th>
+            <th data-i18n="mm.laser">可驱动激光</th><th data-i18n="mm.op">操作</th>
+          </tr></thead>
+          <tbody id="mm-body"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="mm-budget"></p>
+      </div>
+    </article>
+
+    <article class="card laser" id="mod-laser">
+      <header><h3 data-i18n="mod.laser.title">激光驱赶 / 灭杀</h3><span class="tag" id="laser-state">—</span></header>
+      <div class="card-body">
+      <p class="lead" data-i18n="mod.laser.lead">出光需要同时满足：驱动就绪、已解锁、有锁定目标。</p>
+
+      <div class="laser-flag" id="laser-flag" hidden></div>
+
+      <div class="btn-row">
+        <button class="btn" id="lz-connect" data-i18n="mod.laser.connect">连接驱动</button>
+        <button class="btn warn" id="lz-arm" data-i18n="mod.laser.arm">解锁</button>
+        <button class="btn primary danger" id="lz-fire" data-i18n="mod.laser.fire">发射</button>
+        <button class="btn stop" id="lz-stop" data-i18n="mod.laser.stop">急停收光</button>
+        <button class="btn ghost" id="lz-disarm" data-i18n="mod.laser.disarm">上锁</button>
+      </div>
+
+      <dl class="kv">
+        <div><dt data-i18n="mod.laser.backend">驱动</dt><dd id="l-backend">—</dd></div>
+        <div><dt data-i18n="mod.laser.locked">锁定目标</dt><dd id="l-locked">—</dd></div>
+        <div><dt data-i18n="mod.laser.dwell">最长停留</dt><dd id="l-dwell">—</dd></div>
+        <div><dt data-i18n="mod.laser.cooldown">冷却间隔</dt><dd id="l-cooldown">—</dd></div>
+        <div><dt data-i18n="mod.laser.power">功率</dt><dd id="l-power">—</dd></div>
+      </dl>
+
+      <p class="safety" data-i18n="mod.laser.safety">
+        安全：本模块按可伤眼等级设计。发射前确认视场内无人、无宠物、无反光面。
+        失联或超时会自动收光。
+      </p>
+      </div>
+    </article>
+
+    <article class="card" id="mod-record">
+      <header><h3 data-i18n="mod.record.title">采集与标注</h3><span class="tag" id="rec-state">—</span></header>
+      <div class="card-body">
+      <p class="lead" data-i18n="mod.record.lead">按帧存图给 tools/label_frames.py 做真值。</p>
+      <dl class="kv">
+        <div><dt data-i18n="mod.record.session">会话</dt><dd id="r-session">—</dd></div>
+        <div><dt data-i18n="mod.record.saved">已存帧</dt><dd id="r-saved">—</dd></div>
+        <div><dt data-i18n="mod.record.time">时长</dt><dd id="r-time">—</dd></div>
+        <div><dt data-i18n="mod.record.stride">步长</dt><dd id="r-stride">—</dd></div>
+        <div><dt data-i18n="mod.record.dropped">退化框丢弃</dt><dd id="r-dropped">—</dd></div>
+      </dl>
+      <p class="hint" data-i18n="mod.record.next">下一步：python -m tools.label_frames --session dataset/&lt;会话名&gt;</p>
+      </div>
+    </article>
+
+    <article class="card" id="mod-help">
+      <header><h3 data-i18n="mod.help.title">使用说明</h3></header>
+      <div class="card-body">
+      <ol class="steps">
+        <li><b data-i18n="help.1t">接上画面</b><span data-i18n="help.1d">手机装 PhoneCamera，和这台电脑同一个 WiFi，config 里填 camera_url。</span></li>
+        <li><b data-i18n="help.2t">开检测</b><span data-i18n="help.2d">点下面的「AI 检测」chip。第一次点会加载模型，画面会停几秒。</span></li>
+        <li><b data-i18n="help.3t">开跟踪和预测</b><span data-i18n="help.3d">跟踪给每个目标一个稳定 ID，预测才有的算。两个都开才看得到速度。</span></li>
+        <li><b data-i18n="help.4t">攒真值</b><span data-i18n="help.4d">开「采集」录一段，回来看见真虫就标，标完喂 build_dataset。</span></li>
+        <li><b data-i18n="help.5t">激光</b><span data-i18n="help.5d">先在 config 里把 laser.enabled 打开并选 backend，否则这里永远是灰色。</span></li>
+        <li><b data-i18n="help.6t">多路模型</b><span data-i18n="help.6d">在 config 的 ai.models 里列几路就跑几路。每路的"每N帧"是能不能负担得起的关键 —— 人不需 25 fps，蚊子需要。</span></li>
+      </ol>
+      <div class="keys">
+        <span><kbd>中/EN</kbd> <em data-i18n="help.klang">切换界面语言</em></span>
+        <span><kbd>点目标框</kbd> <em data-i18n="help.klock">锁定该目标给激光</em></span>
+        <span><kbd>急停</kbd> <em data-i18n="help.kstop">任何状态都收光</em></span>
+      </div>
+      </div>
+    </article>
+
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
