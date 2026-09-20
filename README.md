@@ -14,7 +14,9 @@ run-ai.bat                                            # 带检测；run.bat 是�
                                                       # 然后浏览器开 http://127.0.0.1:8060/
 ```
 
-License: CC0 1.0 Universal — 见 `LICENSE`。数据和模型权重不进版本库（`.gitignore`）。
+License: CC0 1.0 Universal — 见 `LICENSE`。
+在法律允许的范围内，作者放弃对本作品的全部版权及相关权利：复制、修改、分发、商用都不必打招呼。
+数据和模型权重不进版本库（`.gitignore`）。
 
 Current version: V0.6
 
