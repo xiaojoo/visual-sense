@@ -307,7 +307,13 @@ h2, h3 { margin: 0; font-weight: 600; }
 /* 表格容器不留左右内边距：钉住的首末列要真的贴到卡片边缘，
    否则横向滚的时候内容会从那条内边距的缝里露出来。
    左右这一维的留白改由首末格的 padding 提供（见下面 .table-scroll .table 那两条）。 */
-.table-scroll { max-height: 232px; overflow: auto; margin: calc(-1 * var(--s-2)) 0 0; padding: 0; }
+.table-scroll {
+  overflow: auto; margin: calc(-1 * var(--s-2)) 0 0; padding: 0;
+  /* 最少 4 行、最多 20 行（含表头），行高由 app.js 量真实表头写进 --row-h。
+     原来这里写死 max-height: 232px，等于"7.7 行"这么个没来由的数。 */
+  min-height: calc(var(--row-h, 25px) * 4);
+  max-height: calc(var(--row-h, 25px) * 20);
+}
 .table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; text-align: center; }
 .table th {
   text-align: center; font-weight: 500; color: var(--faint); font-size: 11px;
@@ -529,13 +535,8 @@ h2, h3 { margin: 0; font-weight: 600; }
   .modules .card { display: flex; flex-direction: column; overflow: hidden; }
   .card-body { min-height: 0; overflow-y: auto; }
 
-  /* 目标表固定 5 行（含表头）。行高由 JS 量出来写进 --row-h，
-     写死数字的话换字体或换 DPR 就又不准了。
-     是 5 而不是 6：右栏总共 534px，多给一行日志就少 30px，
-     实测那 30px 正好是"日志看得见"和"日志塌成 0"的分界。 */
-  .rail .table-scroll { max-height: none; height: calc(var(--row-h, 25px) * 5); }
   .rail .empty { padding: var(--s-3) 0; }
-  /* 日志吃掉右栏剩下的全部高度：目标表 5 行、指标块定高，余下的给日志。
+  /* 日志吃掉右栏剩下的全部高度：目标表按内容长、指标块定高，余下的给日志。
      min-height 必须是 auto 而不是 0 —— 写 0 的时候 1440x900 和 1280x800 这两档
      卡片会缩到比自己的标题栏还矮（实测卡片 18px < 标题栏 49px），
      标题栏糊到卡片边框外面；写 auto 它至少留一个标题栏（67px），
@@ -555,7 +556,10 @@ h2, h3 { margin: 0; font-weight: 600; }
 
 
   .video-wrap { aspect-ratio: auto; flex: 1 1 auto; min-height: 0; }
-  .table-scroll { max-height: 132px; }
+  /* 目标表的 4~20 行走基线那条 .table-scroll 规则，这里不再重复；
+     只把模块卡里模型表的 132px 上限单独限定在 .modules ——
+     以前它写在裸 .table-scroll 上，会把右栏那张表的行数上限一起压掉。 */
+  .modules .table-scroll { max-height: 132px; }
 
   /* 贴合模式下卡片整体缩一号：只改这一个变量，
      标题栏的左右留白、内容的缩进、卡片底部全部跟着走。

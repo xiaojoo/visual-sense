@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 URL = "http://127.0.0.1:8060/"
 PORT = 9333
+TARGETS = 3            # 合成目标条数，--targets 可改
 SHOT = ""            # --shot 给了就顺手截图，{w} {h} 会替换成视口尺寸
 
 # 覆盖到的三种真实场景：贴合视口（大屏）、单列（窄）、手机
@@ -61,22 +62,31 @@ JS = """
     await new Promise(r => setTimeout(r, 200));
   }
 
-  await new Promise(r => setTimeout(r, %d));
+  await new Promise(r => setTimeout(r, __SETTLE__));
 
   // 目标表平时是空的（没相机就没目标），那三列 num 的数据格就永远量不到。
-  // 页面自己暴露了 renderTargets，所以喂三条合成目标，走的是真渲染路径。
+  // 页面自己暴露了 renderTargets，所以喂 N 条合成目标，走的是真渲染路径 ——
+  // N 可调是为了同时量到"最少 4 行"和"最多 20 行"两头。
   if (window.renderTargets && !document.querySelector('#target-body tr')) {
-    renderTargets([
-      { source: "mosquito", label: "mosquito", track_id: 7, class: "insect",
-        short_px: 32, conf: 0.28, speed_px_s: 41, targetable: true, locked: false,
-        x: 0.4, y: 0.4, w: 0.05, h: 0.04 },
-      { source: "mosquito", label: "mosquito", track_id: 8, class: "insect",
-        short_px: 16, conf: 0.51, speed_px_s: null, targetable: true, locked: true,
-        x: 0.6, y: 0.3, w: 0.02, h: 0.02 },
-      { source: "person", label: "person", track_id: 1, class: "person",
-        short_px: 210, conf: 0.93, speed_px_s: 12, targetable: false, locked: false,
-        x: 0.2, y: 0.5, w: 0.3, h: 0.4 },
-    ]);
+    const list = [];
+
+    for (let i = 0; i < __TARGETS__; i++) {
+      const person = i % 4 === 3;
+      list.push({
+        source: person ? "person" : "mosquito",
+        label: person ? "person" : "mosquito",
+        track_id: 100 + i,
+        class: person ? "person" : "insect",
+        short_px: 16 + i,
+        conf: 0.2 + (i % 7) / 20,
+        speed_px_s: i % 5 === 0 ? null : 20 + i,
+        targetable: !person,
+        locked: i === 1,
+        x: (i % 5) / 6, y: (i % 4) / 5, w: 0.04, h: 0.03,
+      });
+    }
+
+    renderTargets(list);
   }
 
   const px = v => Math.round(parseFloat(v) * 100) / 100;
@@ -275,7 +285,8 @@ async def probe(width: int, height: int, settle_ms: int) -> dict:
         await call("Emulation.setDeviceMetricsOverride",
                    width=width, height=height, deviceScaleFactor=1, mobile=False)
         raw = await call("Runtime.evaluate",
-                         expression=JS % settle_ms,
+                         expression=(JS.replace("__SETTLE__", str(settle_ms))
+                              .replace("__TARGETS__", str(TARGETS))),
                          awaitPromise=True, returnByValue=True)
 
         if SHOT:
@@ -527,13 +538,15 @@ def main() -> int:
     parser.add_argument("--url", help="改成量已经开着的那一份（会抢它的相机）")
     parser.add_argument("--save", type=Path, help="把这次的测量结果写成 json")
     parser.add_argument("--against", type=Path, help="和这份基线逐项比，几何变了就报")
+    parser.add_argument("--targets", type=int, default=3, help="喂几条合成目标（量 4 行下限和 20 行上限）")
     parser.add_argument("--settle", type=int, default=1400, help="每档视口等多少毫秒再量")
     parser.add_argument("--shot", help="顺手截图，路径里用 {w} {h} 区分视口")
     args = parser.parse_args()
 
-    global URL, SHOT
+    global URL, SHOT, TARGETS
 
     SHOT = args.shot or ""
+    TARGETS = args.targets
 
     if args.url:
         URL = args.url
