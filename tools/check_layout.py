@@ -217,12 +217,30 @@ JS = """
 
     // 操作列里的按钮被列宽裁掉是看不出来的（td 有 ellipsis），单独量：
     // 按钮自己的宽度不能大过格子去掉内衬之后的可用宽。
-    const btnClipped = [...t.querySelectorAll('tbody td:last-child button')].filter(b => {
-      const cs = getComputedStyle(b.parentElement);
-      const room = b.parentElement.clientWidth
-        - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-      return b.getBoundingClientRect().width > room + 1;
-    }).map(b => b.textContent.trim());
+    const btnClipped = [...t.querySelectorAll('tbody td:last-child button')]
+      .map(b => {
+        const cs = getComputedStyle(b.parentElement);
+        const room = b.parentElement.clientWidth
+          - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        return [b.textContent.trim(), Math.round(b.getBoundingClientRect().width), Math.round(room)];
+      })
+      .filter(([, need, room]) => need > room + 1)
+      .map(([txt, need, room]) => `${txt} ${need}px需/${room}px有`);
+
+    // 列宽是 px 写死的，字却是按内容长的：来源列塞的是模型名（mosquito 8 个字母）。
+    // 数字列截断是有意的（权重列只给 88px，app.js 把全文塞进了 title），
+    // 所以只抓"裁了又没给悬停全文"的格子。
+    const cellClipped = [...t.querySelectorAll('tbody td')]
+      .filter(el => {
+        const txt = el.textContent.trim();
+        return /[A-Za-z\u4e00-\u9fff]/.test(txt)
+          && !el.querySelector('button')
+          && !el.getAttribute('title')
+          && el.scrollWidth - el.clientWidth > 1;
+      })
+      .map(el => head.children[el.cellIndex].textContent.trim() + ':'
+                  + el.textContent.trim().slice(0, 12)
+                  + '+' + (el.scrollWidth - el.clientWidth));
 
     let pin = null;
 
@@ -255,6 +273,7 @@ JS = """
       wrap,
       offCenter,
       btnClipped,
+      cellClipped: [...new Set(cellClipped)],
       pin,
     };
   });
@@ -490,6 +509,12 @@ def report(data: dict) -> list[str]:
                     "td 有 ellipsis，这种情况肉眼只会看到按钮缺半截"
                 )
 
+            if table.get("cellClipped"):
+                problems.append(
+                    f"{view} {table['name']} 正文格子被列宽裁掉：{table['cellClipped']} —— "
+                    "列宽是写死的 px，模型名比列长就少几个字母"
+                )
+
             if table.get("offCenter"):
                 problems.append(
                     f"{view} {table['name']} 有没居中的格子：{table['offCenter']} —— "
@@ -680,6 +705,7 @@ def main() -> int:
                   f" 可换行格子={table['wrap']} 没居中格子={len(table.get('offCenter') or [])}"
                   f" 按钮被裁={table.get('btnClipped') or '无'}"
                   f" 表头截断={table.get('clipped') or '无'}"
+                  f" 正文截断={table.get('cellClipped') or '无'}"
                   + (f" 横滚 {roll['travel']}px 后首列偏移 {roll['gapLeft']} 末列偏移 {roll['gapRight']}"
                      if roll else " 不用横滚"))
 
