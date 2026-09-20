@@ -357,12 +357,6 @@ h2, h3 { margin: 0; font-weight: 600; }
 }
 .table th:first-child, .table th:last-child { z-index: 3; }
 
-/* 左右留白落在格子身上，不在容器上：首格贴左边缘所以自己缩进一个 --card-pad，
-   末列同理靠右缩进。
-   选择器多带一层 .table-scroll 是为了压过后面对 .table.models 格子写的
-   `padding: 5px 4px` —— 那条和这条特异度相同，只靠先后顺序分胜负，改文件顺序就会翻车。 */
-/* .table-scroll .table td:first-child, .table-scroll .table th:first-child { padding-left: var(--card-pad); } */
-/* .table-scroll .table td:last-child, .table-scroll .table th:last-child { padding-right: var(--card-pad); } */
 .table .dim { color: var(--faint); }
 .table .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 .table button { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 5px; padding: 2px 7px; font-size: 11px; cursor: pointer; }
@@ -378,17 +372,18 @@ h2, h3 { margin: 0; font-weight: 600; }
    用 px 而不是百分比：配合 min-width 让"挤不下"变成中间那段横向滚，
    而不是把每列一起压到换行（行不许换行，见 .table 的 white-space）。 */
 #target-table { table-layout: fixed; min-width: 398px; }
-#target-table col.c-src { width: 50px; }
+/* 来源列 57px：填的是模型名，"mosquito" 在 50px 的格子里差 3~7px，
+   画出来是 mosqu…（1280/915/390 三档实测）。 */
+#target-table col.c-src { width: 57px; }
 #target-table col.c-id  { width: 44px; }
 #target-table col.c-cls { width: 76px; }
 #target-table col.c-sz  { width: 48px; }
 #target-table col.c-cf  { width: 48px; }
 #target-table col.c-sp  { width: 46px; }
-/* 操作列 70px：最宽的按钮是"已锁定"（3 字 ≈ 33 + 内衬 14 + 描边 2 = 49），
-   加上格子左边 4px 和首末格那个 --card-pad 16px，正好 69 → 取 70。
-   原来 84px 全是为了"不可驱动"那 4 个字；那个状态现在改成灰短横 + 悬停说明，
-   不再占一个按钮的宽度。 */
-#target-table col.c-op  { width: 45px; }
+/* 操作列 50px：最宽的按钮是"已锁定"，实测 49px（3 字 + 内衬 14 + 描边 2）。
+   45px 的格子里它在 1280/915/390 三档被裁掉 3~7px，肉眼看到的是按钮右边缺半截。
+   "不可驱动"那个状态早就改成灰短横 + 悬停说明，不占按钮宽度了。 */
+#target-table col.c-op  { width: 50px; }
 #target-table td { overflow: hidden; text-overflow: ellipsis; }
 
 .empty { color: var(--faint); font-size: 12px; text-align: center; padding: var(--s-5) 0; margin: 0; }

@@ -220,12 +220,14 @@ JS = """
     const btnClipped = [...t.querySelectorAll('tbody td:last-child button')]
       .map(b => {
         const cs = getComputedStyle(b.parentElement);
-        const room = b.parentElement.clientWidth
-          - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-        return [b.textContent.trim(), Math.round(b.getBoundingClientRect().width), Math.round(room)];
+        const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+        const cell = b.parentElement;
+        return [b.textContent.trim(), Math.round(b.getBoundingClientRect().width),
+                Math.round(cell.clientWidth - pad),
+                `格${Math.round(cell.getBoundingClientRect().width)}/衬${pad}`];
       })
       .filter(([, need, room]) => need > room + 1)
-      .map(([txt, need, room]) => `${txt} ${need}px需/${room}px有`);
+      .map(([txt, need, room, why]) => `${txt} ${need}px需/${room}px有 ${why}`);
 
     // 列宽是 px 写死的，字却是按内容长的：来源列塞的是模型名（mosquito 8 个字母）。
     // 数字列截断是有意的（权重列只给 88px，app.js 把全文塞进了 title），
@@ -240,7 +242,8 @@ JS = """
       })
       .map(el => head.children[el.cellIndex].textContent.trim() + ':'
                   + el.textContent.trim().slice(0, 12)
-                  + '+' + (el.scrollWidth - el.clientWidth));
+                  + ` +${el.scrollWidth - el.clientWidth}px`
+                  + ` 格${Math.round(el.getBoundingClientRect().width)}`);
 
     let pin = null;
 
@@ -349,6 +352,12 @@ JS = """
 # 只有这四档走"贴合视口"，页面本身不许滚；窄屏/手机本来就是单列长页，
 # 竖向滚动是设计内的，不能当异常。
 FIT = {"3440x1440", "2560x1080", "1920x1080", "1600x1050", "1440x900", "1280x800"}
+
+# 390 这一档的列宽裁字是 2026-09-21 他看过数字之后留下的：手机档容器比 #target-table 的
+# min-width 398px 窄，Chrome 把写死的列宽按比例放大 398/369≈1.079 倍，格子自己还要吃掉
+# 左右各 4px 内衬 —— "已锁定"缺 3px、"mosquito" 缺 2px。要治得 c-op→57、c-src→63，
+# 代价是这张表在手机上横滚得更远。只豁免这两条，同视口的别的毛病照样报。
+CLIP_OK_ON = {"390x844"}
 
 
 async def probe(width: int, height: int, settle_ms: int) -> dict:
@@ -503,13 +512,13 @@ def report(data: dict) -> list[str]:
                     "行不许换行之后，列宽不够首先牺牲的就是表头"
                 )
 
-            if table.get("btnClipped"):
+            if table.get("btnClipped") and view not in CLIP_OK_ON:
                 problems.append(
                     f"{view} {table['name']} 操作列的按钮被列宽裁掉：{table['btnClipped']} —— "
                     "td 有 ellipsis，这种情况肉眼只会看到按钮缺半截"
                 )
 
-            if table.get("cellClipped"):
+            if table.get("cellClipped") and view not in CLIP_OK_ON:
                 problems.append(
                     f"{view} {table['name']} 正文格子被列宽裁掉：{table['cellClipped']} —— "
                     "列宽是写死的 px，模型名比列长就少几个字母"

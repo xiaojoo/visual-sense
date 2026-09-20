@@ -288,13 +288,9 @@ CARD_INSET = (
     ".card-body > :not(.table-scroll)",
 )
 
-# 表格容器不留左右内边距（钉住的首末列要真的贴到卡片边缘），
-# 左右这一维改由首末格自己的 padding 提供。
-TABLE_EDGE = {
-    "表格首格": (".table-scroll .table td:first-child", ".table-scroll .table th:first-child"),
-    "表格末格": (".table-scroll .table td:last-child", ".table-scroll .table th:last-child"),
-}
-
+# 表格容器不留左右内边距（钉住的首末列要真的贴到卡片边缘）。
+# 左右这一维也不再由首末格的 padding 补 —— 表格文字自己贴卡片边，
+# 比标题文字靠左一个 --card-pad 是他 2026-09-21 看过截图之后要的样子。
 FIT_MEDIA = "(min-width: 1181px)"
 
 
@@ -553,7 +549,8 @@ def _pairing_problems(css: str) -> list[str]:
                     "横向贴边请改成引用 --card-pad"
                 )
 
-    # 3) 三处横向值必须是同一个 var()，按视口模式各判一次
+    # 3) 卡片里两处横向留白必须是同一个 var()，表格容器那一处必须是 0；
+    #    按视口模式各判一次
     for mode, media in (("基线（窄/矮屏）", None), ("贴合视口", FIT_MEDIA)):
         rules = [
             rule for rule in rules_all
@@ -563,8 +560,6 @@ def _pairing_problems(css: str) -> list[str]:
         for name, selectors, kind, sides, want in (
             ("标题栏", (".card > header",), "padding", ("left", "right"), "--card-pad"),
             ("内容缩进", CARD_INSET, "margin", ("left", "right"), "--card-pad"),
-            ("表格首格", TABLE_EDGE["表格首格"], "padding", ("left",), "--card-pad"),
-            ("表格末格", TABLE_EDGE["表格末格"], "padding", ("right",), "--card-pad"),
             # 表格容器必须是 0：留了内边距，钉住列和卡片边缘之间就有一条缝，
             # 横向滚的时候内容会从缝里露出来。
             ("表格外层", (".table-scroll",), "padding", ("left", "right"), "0"),
